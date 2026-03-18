@@ -1,3 +1,4 @@
+from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.response import Response
@@ -39,6 +40,8 @@ class PlaceViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         project = get_object_or_404(TravelProject, pk=self.kwargs['project_pk'])
+        if project.places.count() >= 10: # type: ignore
+            raise ValidationError("A project cannot have more than 10 places.")
         serializer.save(project=project)
 
     def perform_update(self, serializer):
