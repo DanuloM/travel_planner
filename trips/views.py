@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
-
+from rest_framework.response import Response
+from rest_framework import status
 from trips.serializers import PlaceSerializer, PlaceUpdateSerializer, TravelProjectCreateSerializer, TravelProjectSerializer
 from .models import TravelProject, Place
 
@@ -39,3 +40,11 @@ class PlaceViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         project = get_object_or_404(TravelProject, pk=self.kwargs['project_pk'])
         serializer.save(project=project)
+
+    def perform_update(self, serializer):
+        serializer.save()
+        place = serializer.instance
+        project = place.project
+        if project.places.filter(is_visited=False).count() == 0:
+            project.is_completed = True
+            project.save()
