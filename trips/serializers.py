@@ -13,6 +13,16 @@ class PlaceSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Artwork not found in Art Institute API.")
         return value
     
+    def validate(self, data):
+        project = self.context.get('project')
+        external_id = data.get('external_id')
+        
+        if project and external_id:
+            if Place.objects.filter(project=project, external_id=external_id).exists():
+                raise serializers.ValidationError({"external_id": "This place already exists in the project."})
+        
+        return data
+    
 
 class TravelProjectSerializer(serializers.ModelSerializer):
     places = PlaceSerializer(many=True, read_only=True)
@@ -23,13 +33,15 @@ class TravelProjectSerializer(serializers.ModelSerializer):
 
 
 class TravelProjectCreateSerializer(serializers.ModelSerializer):
-    places = PlaceSerializer(many=True, required=False)
+    places = PlaceSerializer(many=True, required=True)
 
     class Meta:
         model = TravelProject
         fields = ['id', 'name', 'description', 'start_date', 'places']
 
     def validate_places(self, value):
+        if len(value) < 1:
+            raise serializers.ValidationError("A project must have at least 1 place.")
         if len(value) > 10:
             raise serializers.ValidationError("A project cannot have more than 10 places.")
             

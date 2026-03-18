@@ -38,6 +38,12 @@ class PlaceViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Place.objects.filter(project_id=self.kwargs['project_pk'])
     
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        if 'project_pk' in self.kwargs:
+            context['project'] = get_object_or_404(TravelProject, pk=self.kwargs['project_pk'])
+        return context
+    
     def perform_create(self, serializer):
         project = get_object_or_404(TravelProject, pk=self.kwargs['project_pk'])
         if project.places.count() >= 10: # type: ignore
@@ -48,6 +54,12 @@ class PlaceViewSet(viewsets.ModelViewSet):
         serializer.save()
         place = serializer.instance
         project = place.project
-        if project.places.filter(is_visited=False).count() == 0:
+        
+        all_visited = project.places.filter(is_visited=False).count() == 0
+        
+        if all_visited and not project.is_completed:
             project.is_completed = True
+            project.save()
+        elif not all_visited and project.is_completed:
+            project.is_completed = False
             project.save()
